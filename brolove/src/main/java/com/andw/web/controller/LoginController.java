@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,18 +41,29 @@ public class LoginController {
 	
 	@RequestMapping(value="/login/handler/login.do", method = {RequestMethod.GET, RequestMethod.POST})
 	public String handlerLogin(HttpServletRequest request, Model model, MemberVo vo) throws Exception {
-		//log.debug("id"+vo.getUser_id());
 		MemberVo memberVo = loginService.selectMemberInfo(vo);
+		
+		//ID 존재여부 확인
 		if(memberVo == null) {
 			model.addAttribute("msg", "입력정보를 확인해주세요.");
 			model.addAttribute("url", "/login/login.do");
 			return "/view/common/redirect";
-		}else {
-			model.addAttribute("msg", "로그인되었습니다.");
-			model.addAttribute("url", "/admin/bro/baby.do");
-			request.getSession().setAttribute("loginInfo", memberVo);
-			return "/view/common/redirect";
 		}
+		
+		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+		boolean isPasswordMatch = encoder.matches(vo.getMember_pwd(), memberVo.getMember_pwd()); 
+		
+		//비밀번호 일치 확인
+		if (!isPasswordMatch) {
+	        model.addAttribute("msg", "비밀번호가 일치하지 않습니다.");
+	        model.addAttribute("url", "/login/login.do");
+	        return "/view/common/redirect";
+	    }
+		
+		model.addAttribute("msg", "로그인되었습니다.");
+		model.addAttribute("url", "/admin/bro/baby.do");
+		request.getSession().setAttribute("loginInfo", memberVo);
+		return "/view/common/redirect";
 	}
 	
 	@RequestMapping(value="/login/handler/logout.do", method = {RequestMethod.GET, RequestMethod.POST})
